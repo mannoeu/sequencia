@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sequência — online</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&display=swap">
+<style>
+  :root { --ink: #1B2237; --paper: #FFFFFF; --muted: #5B6478; --line: #C9CDD6; --amber: #D9822B; --amber-dk: #B8651A; --gold: #D9A83A; --gold-ink: #2B1D06; --bg: #ECEEF2; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--ink); }
+  button { font: inherit; font-weight: 700; cursor: pointer; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink); border-radius: 8px; padding: 10px 16px; min-height: 44px; }
+  button.primary { background: var(--ink); color: var(--paper); }
+  button.gold { background: var(--gold); color: var(--gold-ink); border-color: var(--gold-ink); }
+  button:disabled { opacity: .4; cursor: default; }
+  input { font: inherit; padding: 10px 12px; border: 1.5px solid var(--ink); border-radius: 8px; min-height: 44px; width: 100%; }
+  label { display: block; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 20px; }
+  .hidden { display: none !important; }
+  h1 { font-size: 28px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; margin: 0; }
+  .sub { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); }
+  .panel { background: var(--paper); border: 1.5px solid var(--ink); border-radius: 14px; padding: 18px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 16px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .err { color: #B3261E; font-weight: 700; min-height: 20px; margin-top: 8px; }
+
+  .secret { display: flex; gap: 10px; flex-wrap: wrap; }
+  .slot { width: 64px; height: 90px; border-radius: 8px; border: 1.5px solid var(--gold-ink); background: var(--gold); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  .slot .pos { position: absolute; top: 4px; left: 6px; font-size: 9px; font-weight: 900; color: var(--gold-ink); letter-spacing: .1em; }
+  .slot .v { font-size: 40px; font-weight: 900; color: var(--gold-ink); line-height: 1; }
+  .slot.hidden-card { background: repeating-linear-gradient(135deg, rgba(43,29,6,.12) 0 1px, var(--gold) 1px 9px); }
+  .slot.hidden-card .v { font-size: 28px; }
+  .slot.peeked { outline: 2px dashed var(--amber-dk); outline-offset: 2px; }
+  .slot.peeked .v { opacity: .55; }
+  .slot button { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; border: 2px solid var(--amber); border-radius: 8px; color: transparent; }
+  .slot button:hover { background: rgba(217,130,43,.18); }
+
+  .players { display: flex; flex-direction: column; gap: 8px; }
+  .player { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+  .player.turn { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(217,130,43,.3); }
+  .player.me { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .player.me .pill { background: rgba(255,255,255,.18); color: var(--paper); }
+  .player.me .pill.ann { background: var(--amber); color: var(--ink); }
+  .player.me .pts { border-color: var(--paper); }
+  .player.me.turn { box-shadow: 0 0 0 3px var(--amber); }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; flex-shrink: 0; border: 2px solid transparent; }
+  .you { font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; background: var(--amber); color: var(--ink); padding: 2px 6px; border-radius: 4px; }
+  #meTag { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  #muteBtn { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+  .player.off { opacity: .5; }
+  .player.out { text-decoration: line-through; opacity: .5; }
+  .name { font-weight: 700; flex: 1; }
+  .pill { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--bg); color: var(--muted); }
+  .pill.marker { background: var(--ink); color: var(--paper); }
+  .pill.ann { background: var(--amber); color: var(--ink); }
+  .pts { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--ink); display: flex; align-items: center; justify-content: center; font-weight: 900; }
+
+  /* ---- mesa ---- */
+  .table-wrap { position: relative; width: 100%; aspect-ratio: 16 / 10; min-height: 440px; }
+  .felt { position: absolute; left: 12%; top: 16%; width: 76%; height: 68%; border-radius: 50%; background: #23304A; border: 10px solid #141B2E; box-shadow: inset 0 0 60px rgba(0,0,0,.35); }
+  .center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .center .secret { justify-content: center; }
+  .center .slot { width: 48px; height: 68px; }
+  .center .slot .v { font-size: 30px; }
+  .center .slot.hidden-card .v { font-size: 22px; }
+  .pile { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.75); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+  .back { width: 28px; height: 40px; border-radius: 4px; background: var(--ink); border: 1.5px solid var(--amber); box-shadow: 1px 1px 0 #0b0f1c; position: relative; }
+  .back::after { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(217,130,43,.6); border-radius: 2px; }
+  .back.gold { background: var(--gold); border-color: var(--gold-ink); }
+  .seat { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: 128px; }
+  .seat .who { display: flex; align-items: center; gap: 6px; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 999px; padding: 3px 10px 3px 4px; font-weight: 700; font-size: 13px; max-width: 100%; }
+  .seat .who .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seat.me .who { background: var(--ink); color: var(--paper); }
+  .seat.turn .who { box-shadow: 0 0 0 3px var(--amber); }
+  .seat.off { opacity: .5; }
+  .seat.out .who { text-decoration: line-through; opacity: .6; }
+  .seat .fan { display: flex; height: 40px; }
+  .seat .fan .back { width: 24px; height: 34px; margin-left: -10px; }
+  .seat .fan .back:first-child { margin-left: 0; }
+  .seat .played { width: 34px; height: 48px; border-radius: 5px; border: 1.5px solid var(--ink); background: var(--paper); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; }
+  .seat .played.down { background: var(--ink); border-color: var(--amber); }
+  .seat .played.rep { opacity: .45; text-decoration: line-through; }
+  .seat .badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+  .seat .badges .pill { font-size: 9px; padding: 2px 6px; }
+  .seat .pts { width: 24px; height: 24px; font-size: 12px; background: var(--paper); color: var(--ink); border-color: var(--ink); flex-shrink: 0; }
+  .seat.me .pts { background: var(--amber); border-color: var(--amber); }
+  @media (max-width: 640px) { .seat { width: 96px; } .seat .who { font-size: 11px; } .felt { left: 8%; width: 84%; } }
+
+  .hand { display: flex; gap: 10px; flex-wrap: wrap; }
+  .card { width: 56px; height: 80px; border: 1.5px solid var(--ink); border-radius: 8px; background: var(--paper); font-size: 32px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .card.sel { background: var(--ink); color: var(--paper); }
+  .nums { display: flex; gap: 6px; flex-wrap: wrap; }
+  .nums button { width: 44px; padding: 0; }
+  .nums button.sel { background: var(--amber); border-color: var(--amber-dk); }
+  .log { font-size: 12px; line-height: 1.5; max-height: 260px; overflow: auto; color: var(--muted); }
+  .log div:last-child { color: var(--ink); font-weight: 700; }
+  .plays { display: flex; gap: 8px; flex-wrap: wrap; }
+  .play { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; text-align: center; }
+  .play b { display: block; font-size: 22px; }
+  .play.rep { opacity: .5; text-decoration: line-through; }
+  .play.bluff { border-color: var(--amber); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  td.n, th.n { text-align: right; }
+  .hint { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px">
+    <div><h1>Sequência</h1><div class="sub">jogue · blefe · descubra</div></div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px">
+      <div id="meTag"></div>
+      <div style="display:flex; gap:8px; align-items:center"><span id="roomTag" class="hint"></span><button id="muteBtn" aria-label="Alternar som">🔊 som</button></div>
+    </div>
+  </header>
+
+  <!-- ENTRAR -->
+  <section id="join" class="panel">
+    <div class="row">
+      <div style="flex:2; min-width:200px"><label for="name">Seu nome</label><input id="name" maxlength="20" placeholder="ex.: Carla"></div>
+      <div style="flex:1; min-width:140px"><label for="room">Sala</label><input id="room" maxlength="20" placeholder="mesa"></div>
+      <button class="primary" id="joinBtn">Entrar</button>
+    </div>
+    <div class="err" id="joinErr"></div>
+    <p class="hint">Quem entra primeiro vira o anfitrião e inicia a partida. A sala precisa de 3 a 8 jogadores.</p>
+  </section>
+
+  <!-- LOBBY -->
+  <section id="lobby" class="panel hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap">
+      <div><label>Jogadores na sala</label><div id="lobbyPlayers" class="players"></div></div>
+      <div class="stack" style="align-items:flex-end">
+        <button class="primary" id="startBtn">Iniciar partida</button>
+        <div class="hint" id="startHint"></div>
+      </div>
+    </div>
+    <div class="err" id="lobbyErr"></div>
+  </section>
+
+  <!-- JOGO -->
+  <section id="game" class="hidden">
+    <div class="panel" style="padding:8px">
+      <div class="table-wrap" id="table">
+        <div class="felt"></div>
+        <div class="center">
+          <div class="secret" id="secret"></div>
+          <div class="pile" id="deckHint"></div>
+        </div>
+        <div id="seats"></div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="stack">
+        <div class="panel" id="actionPanel">
+          <label id="actionTitle">Sua vez</label>
+          <div id="actionBody"></div>
+          <div class="err" id="gameErr"></div>
+        </div>
+        <div class="panel" id="lastRoundPanel">
+          <label>Última rodada</label>
+          <div class="plays" id="plays"></div>
+        </div>
+        <div class="panel hidden" id="resultPanel">
+          <label>Fim de jogo</label>
+          <div id="result"></div>
+          <div class="row" style="margin-top:12px"><button class="primary" id="againBtn">Jogar de novo</button><button id="lobbyBtn">Voltar à sala</button><span class="hint">Qualquer jogador pode reiniciar. "Voltar à sala" permite entrar e sair gente antes da próxima.</span></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="panel"><label>Registro</label><div class="log" id="log"></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  let ws, state = null;
+  let selCard = null, selAnn = null;
+  let peeks = {};          // pos -> value que só eu vi
+  let chuteMode = false;
+  let joined = { name: null, room: null };
+
+  // ---------- sons (sintetizados com Web Audio, sem arquivos) ----------
+  const sfx = (() => {
+    let ctx = null, muted = localStorage.getItem('seq-mute') === '1';
+    function ac() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); return ctx; }
+    function tone(freq, start, dur, { type = 'sine', gain = 0.18, slide = null } = {}) {
+      const c = ac(); const o = c.createOscillator(); const g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, c.currentTime + start);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, c.currentTime + start + dur);
+      g.gain.setValueAtTime(0, c.currentTime + start);
+      g.gain.linearRampToValueAtTime(gain, c.currentTime + start + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + start + dur);
+      o.connect(g).connect(c.destination); o.start(c.currentTime + start); o.stop(c.currentTime + start + dur + 0.05);
+    }
+    function noise(start, dur, gain = 0.25) {
+      const c = ac(); const n = c.sampleRate * dur; const buf = c.createBuffer(1, n, c.sampleRate); const d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = c.createBufferSource(); s.buffer = buf; const g = c.createGain(); g.gain.value = gain;
+      const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800;
+      s.connect(f).connect(g).connect(c.destination); s.start(c.currentTime + start);
+    }
+    const play = (fn) => { if (muted) return; try { fn(); } catch (e) { /* sem áudio */ } };
+    return {
+      unlock() { try { ac(); } catch (e) {} },
+      toggle() { muted = !muted; localStorage.setItem('seq-mute', muted ? '1' : '0'); return muted; },
+      isMuted() { return muted; },
+      card()      { play(() => { noise(0, 0.08, 0.3); tone(220, 0, 0.06, { type: 'triangle', gain: 0.12 }); }); },      // carta jogada
+      tick()      { play(() => tone(660, 0, 0.05, { type: 'square', gain: 0.05 })); },                                    // passou a vez
+      myTurn()    { play(() => { tone(880, 0, 0.12); tone(1320, 0.12, 0.18); }); },                                       // sua vez
+      round()     { play(() => { tone(523, 0, 0.1, { type: 'triangle' }); tone(659, 0.1, 0.1, { type: 'triangle' }); tone(784, 0.2, 0.16, { type: 'triangle' }); }); }, // nova rodada
+      reveal()    { play(() => { tone(988, 0, 0.08); tone(1319, 0.08, 0.2); }); },                                        // carta do Segredo revelada
+      chute()     { play(() => { tone(110, 0, 0.5, { type: 'sawtooth', gain: 0.2, slide: 55 }); noise(0, 0.3, 0.15); }); }, // alguém chutou
+      ok()        { play(() => { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.1, 0.25, { type: 'triangle', gain: 0.2 })); }); }, // acerto
+      fail()      { play(() => { tone(330, 0, 0.25, { type: 'sawtooth', gain: 0.18, slide: 165 }); tone(220, 0.25, 0.4, { type: 'sawtooth', gain: 0.18, slide: 110 }); }); }, // erro
+      end()       { play(() => { [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.12, 0.3, { type: 'triangle', gain: 0.18 })); }); },
+    };
+  })();
+  document.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
+  function renderMute() { $('muteBtn').textContent = sfx.isMuted() ? '🔇 mudo' : '🔊 som'; }
+  $('muteBtn').onclick = () => { sfx.toggle(); renderMute(); };
+  renderMute();
+
+  // ---------- identidade visual de cada jogador ----------
+  const COLORS = ['#D9822B', '#4FB0A5', '#8E7CF2', '#E04E5A', '#3C8DDE', '#9BBF3B', '#D96BB0', '#B8A34A'];
+  function colorOf(id) { const i = state ? state.players.findIndex(p => p.id === id) : 0; return COLORS[(i < 0 ? 0 : i) % COLORS.length]; }
+  function avatar(p) { return `<span class="avatar" style="background:${colorOf(p.id)}; color:#1B2237">${esc(p.name.slice(0, 1).toUpperCase())}</span>`; }
+
+  function connect() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}`);
+    ws.onmessage = (e) => handle(JSON.parse(e.data));
+    ws.onclose = () => { setTimeout(() => { connect(); if (joined.name) sendJoin(); }, 1500); };
+  }
+  function send(msg) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg)); }
+  function sendJoin() { send({ type: 'join', name: joined.name, room: joined.room }); }
+
+  $('joinBtn').onclick = () => {
+    joined = { name: $('name').value.trim(), room: $('room').value.trim() || 'mesa' };
+    if (!joined.name) { $('joinErr').textContent = 'Informe um nome.'; return; }
+    $('joinErr').textContent = '';
+    sendJoin();
+  };
+  $('name').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
+  $('room').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
+  $('startBtn').onclick = () => send({ type: 'start' });
+  $('againBtn').onclick = () => send({ type: 'start' });
+  $('lobbyBtn').onclick = () => send({ type: 'toLobby' });
+
+  function handle(msg) {
+    if (msg.type === 'error') {
+      const target = !state ? $('joinErr') : state.phase === 'lobby' ? $('lobbyErr') : $('gameErr');
+      target.textContent = msg.text;
+      return;
+    }
+    if (msg.type === 'peek') { peeks[msg.pos] = msg.value; render(); return; }
+    if (msg.type === 'chuteResult') {
+      chuteMode = false;
+      $('gameErr').textContent = msg.ok ? 'Você acertou a sequência!' : 'Errei. Você saiu da partida.';
+      if (msg.ok) sfx.ok(); else sfx.fail();
+      return;
+    }
+    if (msg.type === 'state') {
+      const prev = state;
+      const prevRound = state ? state.round : -1;
+      const prevPhase = state ? state.phase : null;
+      state = msg;
+      if (state.round !== prevRound) { selCard = null; selAnn = null; chuteMode = false; }
+      if (prevPhase === 'fim' && state.phase === 'anunciar') peeks = {};
+      if (state.phase === 'lobby') peeks = {};
+      soundsFor(prev, state);
+      $('gameErr').textContent = '';
+      $('lobbyErr').textContent = '';
+      render();
+    }
+  }
+
+  function soundsFor(prev, cur) {
+    if (!prev || prev.room !== cur.room) return;
+    if (cur.phase === 'lobby') return;
+    const played = (s) => s.players.filter(p => p.played).length;
+    const revealed = (s) => s.secret.filter(x => x.revealed).length;
+    const lastLog = cur.log[cur.log.length - 1] || '';
+    const logGrew = cur.log.length !== prev.log.length || lastLog !== prev.log[prev.log.length - 1];
+
+    if (cur.phase === 'fim' && prev.phase !== 'fim') { sfx.end(); return; }
+    if (logGrew && /chuta a sequência/.test(lastLog)) { sfx.chute(); return; }
+    if (logGrew && /sai da partida com zero/.test(lastLog) && cur.players.find(p => p.id === cur.me && !p.eliminated)) { sfx.fail(); }
+    if (cur.round !== prev.round && cur.phase === 'anunciar') { sfx.round(); }
+    else if (played(cur) > played(prev) && cur.phase === 'anunciar') { sfx.card(); }
+    else if (prev.phase === 'anunciar' && cur.phase === 'investigar') { sfx.card(); }
+    if (revealed(cur) > revealed(prev)) { sfx.reveal(); }
+
+    const myTurnNow = (cur.phase === 'anunciar' && cur.currentPlayer === cur.me) || (cur.phase === 'investigar' && cur.investigator === cur.me);
+    const myTurnBefore = (prev.phase === 'anunciar' && prev.currentPlayer === prev.me) || (prev.phase === 'investigar' && prev.investigator === prev.me);
+    const turnChanged = cur.currentPlayer !== prev.currentPlayer || cur.investigator !== prev.investigator;
+    if (myTurnNow && !myTurnBefore) setTimeout(() => sfx.myTurn(), 120);
+    else if (turnChanged && !myTurnNow) setTimeout(() => sfx.tick(), 120);
+  }
+
+  function me() { return state.players.find(p => p.id === state.me); }
+  function nameOf(id) { const p = state.players.find(p => p.id === id); return p ? p.name : '?'; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+  function render() {
+    $('roomTag').textContent = `sala: ${state.room} · rodada ${state.round || '–'}`;
+    const m0 = me(); $('meTag').innerHTML = m0 ? `${avatar(m0)}<span>${esc(m0.name)}</span><span class="you">você</span>` : '';
+    $('join').classList.add('hidden');
+    const inLobby = state.phase === 'lobby';
+    $('lobby').classList.toggle('hidden', !inLobby);
+    $('game').classList.toggle('hidden', inLobby);
+    if (inLobby) return renderLobby();
+    renderSecret(); renderAction(); renderPlays(); renderPlayers(); renderLog(); renderResult();
+  }
+
+  function renderLobby() {
+    $('lobbyPlayers').innerHTML = state.players.map(p =>
+      `<div class="player ${p.id === state.me ? 'me' : ''}">${avatar(p)}<span class="name">${esc(p.name)}</span>${p.id === state.me ? '<span class="you">você</span>' : ''}${p.id === state.hostId ? '<span class="pill">anfitrião</span>' : ''}</div>`).join('');
+    const n = state.players.length, host = state.hostId === state.me;
+    $('startBtn').disabled = !host || n < state.minPlayers;
+    $('startHint').textContent = n < state.minPlayers ? `Faltam ${state.minPlayers - n} jogador(es) para começar.` : host ? `${n} jogadores. Pode iniciar.` : 'Aguardando o anfitrião iniciar.';
+  }
+
+  function renderSecret() {
+    const canInv = state.phase === 'investigar' && state.investigator === state.me;
+    $('secret').innerHTML = state.secret.map((s, i) => {
+      const peek = peeks[i];
+      if (s.revealed) return `<div class="slot"><span class="pos">${i + 1}</span><span class="v">${s.value}</span></div>`;
+      const inner = peek !== undefined ? `<span class="v">${peek}</span>` : `<span class="v">?</span>`;
+      const btn = canInv ? `<button data-pos="${i}" aria-label="Investigar posição ${i + 1}">investigar</button>` : '';
+      return `<div class="slot hidden-card ${peek !== undefined ? 'peeked' : ''}"><span class="pos">${i + 1}</span>${inner}${btn}</div>`;
+    }).join('');
+    $('secret').querySelectorAll('button[data-pos]').forEach(b => b.onclick = () => send({ type: 'investigate', pos: Number(b.dataset.pos) }));
+  }
+
+  function renderAction() {
+    const m = me();
+    const title = $('actionTitle'), body = $('actionBody');
+    if (state.phase === 'fim') { title.textContent = 'Partida encerrada'; body.innerHTML = ''; return; }
+    if (m.eliminated) { title.textContent = 'Você saiu da partida'; body.innerHTML = '<div class="hint">Acompanhe o restante da mesa.</div>'; return; }
+
+    if (state.phase === 'anunciar') {
+      const myTurn = state.currentPlayer === state.me;
+      if (chuteMode) return renderChute();
+      title.textContent = myTurn ? 'Sua vez: escolha a carta e anuncie um número' : `Aguardando ${nameOf(state.currentPlayer)} anunciar`;
+      let html = `<label>Sua mão</label><div class="hand">${state.hand.map((c, i) =>
+        `<button class="card ${selCard === i ? 'sel' : ''}" data-i="${i}" ${myTurn ? '' : 'disabled'}>${c}</button>`).join('')}</div>`;
+      if (myTurn) {
+        html += `<label style="margin-top:14px">O que você anuncia (verdade ou blefe)</label><div class="nums">${[0,1,2,3,4,5,6,7,8,9].map(n =>
+          `<button class="${selAnn === n ? 'sel' : ''}" data-n="${n}">${n}</button>`).join('')}</div>
+          <div class="row" style="margin-top:14px"><button class="primary" id="playBtn" ${selCard === null || selAnn === null ? 'disabled' : ''}>Jogar virada para baixo</button>
+          ${state.canChute ? '<button class="gold" id="chuteBtn">Chutar a sequência</button>' : ''}</div>`;
+      } else if (state.canChute) {
+        html += `<div class="row" style="margin-top:14px"><button class="gold" id="chuteBtn">Chutar a sequência</button><span class="hint">Só antes da primeira carta da rodada.</span></div>`;
+      }
+      body.innerHTML = html;
+      body.querySelectorAll('.card').forEach(b => b.onclick = () => { selCard = Number(b.dataset.i); renderAction(); });
+      body.querySelectorAll('.nums button').forEach(b => b.onclick = () => { selAnn = Number(b.dataset.n); renderAction(); });
+      const pb = $('playBtn'); if (pb) pb.onclick = () => send({ type: 'play', card: state.hand[selCard], announced: selAnn });
+      const cb = $('chuteBtn'); if (cb) cb.onclick = () => { chuteMode = true; renderAction(); };
+      return;
+    }
+
+    if (state.phase === 'investigar') {
+      const mine = state.investigator === state.me;
+      title.textContent = mine ? 'Sua vez: escolha uma posição do Segredo para espiar' : `${nameOf(state.investigator)} está investigando`;
+      body.innerHTML = mine
+        ? `<div class="hint">Clique numa posição oculta acima. Se o número dela saiu nesta rodada (${state.lastRound.numbers.join(', ')}), ela é revelada e você ganha +1. Senão, só você fica sabendo.</div>`
+        : `<label>Sua mão</label><div class="hand">${state.hand.map(c => `<button class="card" disabled>${c}</button>`).join('')}</div>`;
+    }
+  }
+
+  function renderChute() {
+    const hidden = state.secret.map((s, i) => ({ s, i })).filter(x => !x.s.revealed);
+    $('actionTitle').textContent = 'Chute: declare o número de cada posição oculta';
+    $('actionBody').innerHTML = `<div class="hint" style="margin-bottom:10px">Errou qualquer uma e você sai com zero pontos. Acertou todas: +1 por carta e +4.</div>
+      <div class="row">${hidden.map(x => `<div><label>Posição ${x.i + 1}</label><input inputmode="numeric" maxlength="1" style="width:64px; text-align:center; font-size:22px; font-weight:900" data-pos="${x.i}" value="${peeks[x.i] !== undefined ? peeks[x.i] : ''}"></div>`).join('')}</div>
+      <div class="row" style="margin-top:14px"><button class="gold" id="chuteGo">Conferir em segredo</button><button id="chuteCancel">Voltar</button></div>`;
+    $('chuteCancel').onclick = () => { chuteMode = false; renderAction(); };
+    $('chuteGo').onclick = () => {
+      const guess = [...$('actionBody').querySelectorAll('input[data-pos]')].map(i => i.value.trim());
+      if (guess.some(g => !/^[0-9]$/.test(g))) { $('gameErr').textContent = 'Preencha todas as posições com um dígito de 0 a 9.'; return; }
+      send({ type: 'chute', guess: guess.map(Number) });
+    };
+  }
+
+  function renderPlays() {
+    const lr = state.lastRound;
+    $('lastRoundPanel').classList.toggle('hidden', !lr);
+    if (!lr) return;
+    $('plays').innerHTML = lr.plays.map(p =>
+      `<div class="play ${p.repeated ? 'rep' : ''} ${p.card !== p.announced ? 'bluff' : ''}" style="border-top: 4px solid ${colorOf(p.id)}">${p.id === state.me ? '<span class="you">você</span>' : esc(p.name)}<b>${p.card}</b>${p.card !== p.announced ? `disse ${p.announced}` : 'verdade'}${p.repeated ? '<br>anulada' : '<br>único'}</div>`).join('');
+  }
+
+  function renderPlayers() {
+    const n = state.players.length;
+    const myIdx = Math.max(0, state.players.findIndex(p => p.id === state.me));
+    const sameRound = state.lastRound && state.lastRound.round === state.round && state.phase === 'investigar';
+    $('seats').innerHTML = state.players.map((p, idx) => {
+      const k = (idx - myIdx + n) % n;                 // 0 = eu, embaixo; demais em sentido horário
+      const ang = Math.PI / 2 + (k * 2 * Math.PI) / n;
+      const x = 50 + 46 * Math.cos(ang), y = 50 + 44 * Math.sin(ang);
+      const turn = (state.phase === 'anunciar' && state.currentPlayer === p.id) || (state.phase === 'investigar' && state.investigator === p.id);
+      const fan = Array.from({ length: Math.min(p.cards, 8) }, () => '<span class="back"></span>').join('');
+      let played = '';
+      if (sameRound) {
+        const pl = state.lastRound.plays.find(x => x.id === p.id);
+        if (pl) played = `<span class="played ${pl.repeated ? 'rep' : ''}" title="${pl.card !== pl.announced ? 'disse ' + pl.announced : 'verdade'}">${pl.card}</span>`;
+      } else if (p.played && state.phase === 'anunciar') {
+        played = '<span class="played down"></span>';
+      }
+      const badges = [
+        p.isMarker ? '<span class="pill marker">1º</span>' : '',
+        turn ? '<span class="pill ann">na vez</span>' : '',
+        p.announced !== null && state.phase === 'anunciar' ? `<span class="pill ann">disse ${p.announced}</span>` : '',
+        !p.online ? '<span class="pill">offline</span>' : '',
+      ].join('');
+      // quem está em cima mostra a carta jogada abaixo do nome (voltada pro centro); quem está embaixo, acima
+      const top = y < 50;
+      const cards = `<div style="display:flex; align-items:center; gap:8px">${fan ? `<span class="fan">${fan}</span>` : ''}${played}</div>`;
+      return `<div class="seat ${p.id === state.me ? 'me' : ''} ${turn ? 'turn' : ''} ${p.online ? '' : 'off'} ${p.eliminated ? 'out' : ''}" style="left:${x}%; top:${y}%">
+        ${top ? '' : cards}
+        <div class="who">${avatar(p)}<span class="name">${esc(p.name)}</span><span class="pts" title="pontos">${p.points}</span></div>
+        <div class="badges">${badges}</div>
+        ${top ? cards : ''}
+      </div>`;
+    }).join('');
+    $('deckHint').innerHTML = `<span class="back"></span> monte · ${state.deckCount}` + (state.deckCount === 0 ? ' — acabou' : '');
+  }
+
+  function renderLog() { $('log').innerHTML = state.log.map(l => `<div>${esc(l)}</div>`).join(''); $('log').scrollTop = $('log').scrollHeight; }
+
+  function renderResult() {
+    const r = state.result;
+    $('resultPanel').classList.toggle('hidden', !r);
+    $('actionPanel').classList.toggle('hidden', !!r);
+    if (!r) return;
+    $('result').innerHTML = `<p style="margin:0 0 8px"><b>Sequência:</b> ${r.secret.join(' ')}${r.closer ? ` — fechada por ${esc(r.closer)}` : ''}</p>
+      <p style="margin:0 0 12px; font-size:18px; font-weight:900">${r.winners.length > 1 ? 'Empate: ' : 'Vencedor: '}${r.winners.map(esc).join(', ') || '—'}</p>
+      <table><tr><th>Jogador</th><th>Mão</th><th class="n">Base</th><th class="n">Repetidas</th><th class="n">Total</th></tr>
+      ${r.scores.map(s => `<tr><td>${esc(s.name)}${s.eliminated ? ' (saiu)' : ''}</td><td>${s.hand.join(' ')}</td><td class="n">${s.base}</td><td class="n">${s.penalty ? '−' + s.penalty : '0'}</td><td class="n"><b>${s.total}</b></td></tr>`).join('')}</table>`;
+
+  }
+
+  connect();
+})();
+</script>
+</body>
+</html>

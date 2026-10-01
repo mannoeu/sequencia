@@ -1,0 +1,12 @@
+{
+  "name": "sequencia-online",
+  "version": "0.1.0",
+  "description": "Sequência — jogo de números, blefe e dedução, multiplayer via WebSocket",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
