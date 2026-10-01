@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sequência — online</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&display=swap">
 <style>
   :root { --ink: #1B2237; --paper: #FFFFFF; --muted: #5B6478; --line: #C9CDD6; --amber: #D9822B; --amber-dk: #B8651A; --gold: #D9A83A; --gold-ink: #2B1D06; --bg: #ECEEF2; }
@@ -57,6 +58,33 @@
   .pill.ann { background: var(--amber); color: var(--ink); }
   .pts { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--ink); display: flex; align-items: center; justify-content: center; font-weight: 900; }
 
+  /* ---- menu ---- */
+  .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+  @media (max-width: 760px) { .menu { grid-template-columns: 1fr; } }
+  .hero { background: var(--ink); color: var(--paper); border-radius: 14px; padding: 14px; }
+  .hero-in { border: 1.5px solid var(--amber); border-radius: 8px; padding: 28px 24px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.06) 0 1px, transparent 1px 9px); }
+  .emblem { display: flex; gap: 8px; }
+  .emblem span { width: 30px; height: 42px; border: 2px solid rgba(255,255,255,.45); border-radius: 4px; }
+  .emblem span.q { border: 0; background: var(--amber); color: var(--ink); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 24px; }
+  .hero h1 { font-size: 44px; letter-spacing: .08em; line-height: 1; margin-top: 18px; }
+  .hero .sub { color: rgba(255,255,255,.75); margin-top: 8px; }
+  .hero p { margin: 0; font-size: 14px; line-height: 1.5; color: rgba(255,255,255,.85); max-width: 40ch; }
+  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .step { background: rgba(255,255,255,.06); border-radius: 8px; padding: 10px; font-size: 12px; line-height: 1.35; }
+  .step b { display: block; font-size: 22px; font-weight: 900; color: var(--amber); line-height: 1; margin-bottom: 4px; }
+  .form-card { background: var(--paper); border: 1.5px solid var(--ink); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+  .form-card h2 { margin: 0; font-size: 15px; letter-spacing: .18em; text-transform: uppercase; font-weight: 900; }
+  .strip { display: flex; gap: 2px; justify-content: center; }
+  .strip span { width: 22px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); }
+  .strip span.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .lobby-seats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .lobby-seat { border: 1.5px dashed var(--line); border-radius: 10px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 96px; justify-content: center; color: var(--muted); font-size: 12px; }
+  .lobby-seat.filled { border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; }
+  .lobby-seat.filled.me { background: var(--ink); color: var(--paper); }
+  .lobby-seat .avatar { width: 40px; height: 40px; font-size: 18px; }
+  .lobby-seat .pill { font-size: 9px; }
+  .lobby-seat.me .pill { background: rgba(255,255,255,.18); color: var(--paper); }
+
   /* ---- mesa ---- */
   .table-wrap { position: relative; width: 100%; aspect-ratio: 16 / 10; min-height: 440px; }
   .felt { position: absolute; left: 12%; top: 16%; width: 76%; height: 68%; border-radius: 50%; background: #23304A; border: 10px solid #141B2E; box-shadow: inset 0 0 60px rgba(0,0,0,.35); }
@@ -109,8 +137,8 @@
 </head>
 <body>
 <div class="wrap">
-  <header style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px">
-    <div><h1>Sequência</h1><div class="sub">jogue · blefe · descubra</div></div>
+  <header id="topbar" style="display:none; justify-content:space-between; align-items:flex-end; margin-bottom:16px">
+    <div style="display:flex; align-items:center; gap:10px"><img src="favicon.svg" alt="" width="34" height="34"><div><h1 style="font-size:22px">Sequência</h1><div class="sub" style="font-size:10px">jogue · blefe · descubra</div></div></div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px">
       <div id="meTag"></div>
       <div style="display:flex; gap:8px; align-items:center"><span id="roomTag" class="hint"></span><button id="muteBtn" aria-label="Alternar som">🔊 som</button></div>
@@ -118,26 +146,50 @@
   </header>
 
   <!-- ENTRAR -->
-  <section id="join" class="panel">
-    <div class="row">
-      <div style="flex:2; min-width:200px"><label for="name">Seu nome</label><input id="name" maxlength="20" placeholder="ex.: Carla"></div>
-      <div style="flex:1; min-width:140px"><label for="room">Sala</label><input id="room" maxlength="20" placeholder="mesa"></div>
-      <button class="primary" id="joinBtn">Entrar</button>
+  <section id="join" class="menu">
+    <div class="hero"><div class="hero-in">
+      <div>
+        <div class="emblem"><span></span><span></span><span class="q">?</span><span></span><span></span></div>
+        <h1>Sequência</h1>
+        <div class="sub">jogue · blefe · descubra</div>
+      </div>
+      <p>Há uma sequência secreta no centro da mesa. A cada rodada todos jogam um número virado para baixo e anunciam qual é — verdade ou blefe. Quem jogar um número único espia uma carta do Segredo; se ela bater com um número da rodada, vira para todos.</p>
+      <div class="steps">
+        <div class="step"><b>1</b>Jogue uma carta e anuncie um número.</div>
+        <div class="step"><b>2</b>Repetidos se anulam. Únicos investigam.</div>
+        <div class="step"><b>3</b>Revele o Segredo — ou chute tudo e arrisque.</div>
+      </div>
+    </div></div>
+    <div class="form-card">
+      <h2>Entrar na mesa</h2>
+      <div><label for="name">Seu nome</label><input id="name" maxlength="20" placeholder="ex.: Carla" autocomplete="nickname"></div>
+      <div><label for="room">Sala</label><input id="room" maxlength="20" placeholder="mesa"><div class="hint" style="margin-top:6px">Use o mesmo nome de sala para jogar com seus amigos.</div></div>
+      <button class="primary" id="joinBtn" style="font-size:16px">Entrar</button>
+      <div class="err" id="joinErr"></div>
+      <div class="strip" aria-hidden="true"><span>0</span><span>1</span><span>2</span><span class="on">3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></div>
+      <p class="hint" style="margin:0; text-align:center">3 a 8 jogadores · quem entra primeiro é o anfitrião</p>
     </div>
-    <div class="err" id="joinErr"></div>
-    <p class="hint">Quem entra primeiro vira o anfitrião e inicia a partida. A sala precisa de 3 a 8 jogadores.</p>
   </section>
 
   <!-- LOBBY -->
-  <section id="lobby" class="panel hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap">
-      <div><label>Jogadores na sala</label><div id="lobbyPlayers" class="players"></div></div>
-      <div class="stack" style="align-items:flex-end">
-        <button class="primary" id="startBtn">Iniciar partida</button>
-        <div class="hint" id="startHint"></div>
+  <section id="lobby" class="menu hidden">
+    <div class="hero"><div class="hero-in">
+      <div>
+        <div class="emblem"><span></span><span></span><span class="q">?</span><span></span><span></span></div>
+        <h1>Sala <span id="lobbyRoom"></span></h1>
+        <div class="sub" id="lobbyCount"></div>
       </div>
+      <p>Chame os outros para entrar com o mesmo nome de sala. Quando houver pelo menos 3 na mesa, o anfitrião inicia a partida.</p>
+      <div class="stack" style="gap:8px">
+        <button class="gold" id="startBtn" style="font-size:16px">Iniciar partida</button>
+        <div class="hint" id="startHint" style="color:rgba(255,255,255,.75)"></div>
+        <div class="err" id="lobbyErr"></div>
+      </div>
+    </div></div>
+    <div class="form-card">
+      <h2>Na mesa</h2>
+      <div class="lobby-seats" id="lobbyPlayers"></div>
     </div>
-    <div class="err" id="lobbyErr"></div>
   </section>
 
   <!-- JOGO -->
@@ -314,14 +366,21 @@
     const inLobby = state.phase === 'lobby';
     $('lobby').classList.toggle('hidden', !inLobby);
     $('game').classList.toggle('hidden', inLobby);
+    $('topbar').style.display = inLobby ? 'none' : 'flex';
     if (inLobby) return renderLobby();
     renderSecret(); renderAction(); renderPlays(); renderPlayers(); renderLog(); renderResult();
   }
 
   function renderLobby() {
-    $('lobbyPlayers').innerHTML = state.players.map(p =>
-      `<div class="player ${p.id === state.me ? 'me' : ''}">${avatar(p)}<span class="name">${esc(p.name)}</span>${p.id === state.me ? '<span class="you">você</span>' : ''}${p.id === state.hostId ? '<span class="pill">anfitrião</span>' : ''}</div>`).join('');
     const n = state.players.length, host = state.hostId === state.me;
+    const slots = Math.max(state.minPlayers, Math.min(state.maxPlayers, n + 1));
+    $('lobbyPlayers').innerHTML = Array.from({ length: slots }, (_, i) => {
+      const p = state.players[i];
+      if (!p) return `<div class="lobby-seat">${i < state.minPlayers ? 'aguardando…' : 'lugar livre'}</div>`;
+      return `<div class="lobby-seat filled ${p.id === state.me ? 'me' : ''}">${avatar(p)}<span>${esc(p.name)}</span>${p.id === state.me ? '<span class="you">você</span>' : ''}${p.id === state.hostId ? '<span class="pill">anfitrião</span>' : ''}</div>`;
+    }).join('');
+    $('lobbyRoom').textContent = state.room;
+    $('lobbyCount').textContent = `${n} de ${state.maxPlayers} lugares ocupados`;
     $('startBtn').disabled = !host || n < state.minPlayers;
     $('startHint').textContent = n < state.minPlayers ? `Faltam ${state.minPlayers - n} jogador(es) para começar.` : host ? `${n} jogadores. Pode iniciar.` : 'Aguardando o anfitrião iniciar.';
   }
